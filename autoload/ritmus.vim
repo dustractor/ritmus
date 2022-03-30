@@ -1,4 +1,4 @@
-" Ritmus, a vim plugin for running things in tmux windows.
+" Ritmus, a vim plugin for running things in other windows.
 "   Copyright (C) 2022 Shams Kitz
 "
 "   This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 "   -------------------------------------------------------------------
 
 function! ritmus#version()
-    return '0.0.5'
+    return '0.1.0'
 endfunction
 
 let s:data = {}
