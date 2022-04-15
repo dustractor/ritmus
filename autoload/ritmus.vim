@@ -16,24 +16,12 @@
 "   -------------------------------------------------------------------
 
 function! ritmus#version()
-    return '0.1.0'
+    return '0.1.1'
 endfunction
 
 let s:data = {}
 
 function! s:data.init() dict
-    "------------------------------------------------------------------
-    " xxx-TODO more logic here
-    " make configurable overrides for:
-    " default program name,
-    " caring about existence of makefile or
-    " other make-like systems,
-    " the make rule,
-    " specific session name,
-    " window name based on something other than file name
-    " etcetera
-    "------------------------------------------------------------------
-
     let self.filepath = expand("%:p")
     let self.filename = expand("%:p:t:r")
     let self.parent_dir = expand("%:p:h")
@@ -46,6 +34,8 @@ function! s:data.init() dict
     let self.script_run = self.prog." %s"
     let self.make_rule = ""
     let self.run_as_make = "make ".self.make_rule
+    let self.send_fmt = "tmux send-keys -t%s:%s %s Enter"
+    let self.send_cancel_fmt = "tmux send-keys -t%s:%s C-c"
     let self.new_session_cmd = printf(
                 \ "sh -c 'urxvt -cd \"%s\" -e tmux new-session -AD -s%s -n%s &'",
                 \ self.parent_dir,self.ses_name,self.win_name)
@@ -62,6 +52,7 @@ function! s:data.init() dict
                 \ "sh -c 'urxvt -cd \"%s\" -e tmux attach -t%s:%s -d &'",
                 \ self.parent_dir,self.ses_name,self.win_name)
     let self.command_string = self.format_run_cmd()
+    let self.cancel_string = self.format_cancel_cmd()
 endfunction
 
 function! s:data.get_session_list() dict
@@ -162,14 +153,17 @@ function! s:data.ensure_session() dict
     endif
 endfunction
 
+function! s:data.format_cancel_cmd() dict
+    return printf(self.send_cancel_fmt,self.ses_name,self.win_name)
+endfunction
+
 function! s:data.format_run_cmd() dict
     echom "looking for Makefile in ".self.parent_dir
     let l:makefile = self.parent_dir."/Makefile"
     let l:do_a_make = 0
-    let l:send_fmt = "tmux send-keys -t%s:%s %s Enter"
     if filereadable(l:makefile)
         echom "has a Makefile"
-        return printf(l:send_fmt,self.ses_name,self.win_name,self.run_as_make)
+        return printf(self.send_fmt,self.ses_name,self.win_name,self.run_as_make)
     else
         echom "no Makefile found, guessing based off file type"
         echom &filetype
@@ -187,19 +181,27 @@ function! s:data.format_run_cmd() dict
         endif
         let l:runcmd = substitute(printf(l:run,l:arg)," "," Space ","g")
         echom "RUNCMD: ".l:runcmd
-        return printf(l:send_fmt,self.ses_name,self.win_name,l:runcmd)
+        return printf(self.send_fmt,self.ses_name,self.win_name,l:runcmd)
     endif
-    " so maybe like what if it's an executable file run by ./itself ?
-    " do what now
 endfunction
 
 function! s:data.send_command() dict
     call system(self.command_string)
 endfunction
 
+function! s:data.send_cancel() dict
+    call system(self.cancel_string)
+endfunction
+
+
 function! ritmus#ritmus()
     call s:data.init()
     call s:data.ensure_session()
     call s:data.send_command()
+endfunction
+
+function! ritmus#sendcancel()
+    call s:data.init()
+    call s:data.send_cancel()
 endfunction
 
